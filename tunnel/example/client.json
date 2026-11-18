@@ -1,0 +1,23 @@
+{
+  "listen": "127.0.0.1:1080",
+  "signal": "ws://signal.example.com:9960/signal",
+  "room": "example-room",
+  "bind_interface": "en0",
+  "strategy": "birthday",
+  "mode": "header",
+  "hosts": {
+    "signal.example.com": "203.0.113.10"
+  },
+  "max_concurrent_attempts": 2,
+  "birthday": {
+    "selection": "ack",
+    "candidates": 256,
+    "min_port": 1024,
+    "max_port": 65535,
+    "warmup": "250ms",
+    "attempt_timeout": "3s",
+    "success_grace": "250ms",
+    "max_success_candidates": 8
+  },
+  "log_level": "info"
+}

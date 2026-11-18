@@ -1,0 +1,18 @@
+{
+  "forward": "127.0.0.1:29999",
+  "signal": "ws://signal.example.com:9960/signal",
+  "room": "example-room",
+  "bind_interface": "eth0",
+  "strategy": "birthday",
+  "mode": "header",
+  "stable_side": true,
+  "hosts": {
+    "signal.example.com": "203.0.113.10"
+  },
+  "max_concurrent_attempts": 2,
+  "predictive": {
+    "concurrency": 64,
+    "attempt_timeout": "5s"
+  },
+  "log_level": "info"
+}

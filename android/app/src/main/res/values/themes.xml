@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Use a built-in platform theme rather than Theme.Material3.*: the app is
+      pure Compose, so the XML theme only needs a resolvable parent. A Material3
+      XML theme would pull in the ~2 MB View-based material library for no
+      benefit.
+    -->
+    <style name="Theme.Burrow" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

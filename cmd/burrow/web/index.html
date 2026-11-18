@@ -1,0 +1,2602 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Burrow Console</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f4f6f7;
+      --surface: #ffffff;
+      --ink: #18211d;
+      --muted: #63706a;
+      --line: #d5dbd7;
+      --line-strong: #aeb8b2;
+      --accent: #176b46;
+      --accent-dark: #0f5134;
+      --accent-soft: #e8f3ed;
+      --danger: #b42318;
+      --danger-soft: #fdf0ee;
+      --warning: #a15c08;
+      --console: #111713;
+      --console-ink: #dbe8df;
+      --focus: #2f7f5c;
+    }
+
+    * {
+      box-sizing: border-box;
+      letter-spacing: 0;
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--page);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+      letter-spacing: 0;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: default;
+    }
+
+    .appbar {
+      min-height: 62px;
+      background: #202923;
+      color: #f7faf8;
+      border-bottom: 1px solid #111713;
+    }
+
+    .appbar-inner {
+      width: min(1440px, 100%);
+      min-height: 62px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #88b69e;
+      border-radius: 5px;
+      color: #c7ead7;
+      font-weight: 750;
+      font-size: 12px;
+      flex: 0 0 auto;
+    }
+
+    .brand-name {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 680;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .connection {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: #cbd6d0;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .connection-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #d69a35;
+    }
+
+    .connection[data-state="online"] .connection-dot {
+      background: #53c58b;
+    }
+
+    .connection[data-state="error"] .connection-dot {
+      background: #e66b60;
+    }
+
+    .shell {
+      width: min(1440px, 100%);
+      margin: 0 auto;
+      padding: 0 24px 28px;
+    }
+
+    .tabs {
+      height: 58px;
+      display: flex;
+      align-items: end;
+      gap: 28px;
+      border-bottom: 1px solid var(--line);
+      overflow-x: auto;
+    }
+
+    .tab {
+      height: 58px;
+      padding: 0 2px;
+      border: 0;
+      border-bottom: 3px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .tab:hover {
+      color: var(--ink);
+    }
+
+    .tab[aria-selected="true"] {
+      border-bottom-color: var(--accent);
+      color: var(--accent-dark);
+    }
+
+    .workspace {
+      min-height: 670px;
+      display: grid;
+      grid-template-columns: minmax(500px, 1.12fr) minmax(420px, 0.88fr);
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .control-pane {
+      min-width: 0;
+      padding: 27px 30px 32px 0;
+    }
+
+    .output-pane {
+      min-width: 0;
+      padding: 27px 0 28px 30px;
+      border-left: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pane-heading {
+      min-height: 46px;
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    .pane-title {
+      margin: 0 0 5px;
+      font-size: 18px;
+      line-height: 1.25;
+      font-weight: 700;
+    }
+
+    .command-line {
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .role-switch {
+      width: 190px;
+      height: 36px;
+      padding: 3px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: #eef1ef;
+      flex: 0 0 auto;
+    }
+
+    .role-switch[hidden] {
+      display: none;
+    }
+
+    .role-switch button {
+      border: 0;
+      border-radius: 4px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 680;
+    }
+
+    .role-switch button[aria-pressed="true"] {
+      background: var(--surface);
+      color: var(--accent-dark);
+      box-shadow: 0 1px 2px rgb(20 34 27 / 14%);
+    }
+
+    .form-notice {
+      display: none;
+      margin: 0 0 18px;
+      padding: 10px 12px;
+      border-left: 3px solid var(--danger);
+      background: var(--danger-soft);
+      color: var(--danger);
+      font-size: 13px;
+    }
+
+    .form-notice[data-visible="true"] {
+      display: block;
+    }
+
+    .form-notice[data-kind="success"] {
+      border-left-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+    }
+
+    .profile-bar {
+      min-height: 52px;
+      margin-bottom: 20px;
+      padding: 8px 0;
+      display: grid;
+      grid-template-columns: minmax(160px, 1fr) auto auto;
+      align-items: center;
+      gap: 8px;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .profile-select {
+      min-width: 0;
+      height: 34px;
+      border: 1px solid var(--line-strong);
+      border-radius: 5px;
+      background: #fff;
+      color: var(--ink);
+      padding: 0 9px;
+      outline: 0;
+    }
+
+    .profile-select:focus {
+      border-color: var(--focus);
+      box-shadow: 0 0 0 3px rgb(47 127 92 / 14%);
+    }
+
+    .profile-button {
+      height: 34px;
+      padding: 0 10px;
+      border: 1px solid var(--line-strong);
+      border-radius: 5px;
+      background: #fff;
+      color: #35423b;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .profile-button:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--accent-dark);
+    }
+
+    .profile-button.danger:hover:not(:disabled) {
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    .profile-button:disabled {
+      color: #9aa49e;
+      background: #f1f3f2;
+      border-color: #d5dad7;
+      cursor: default;
+    }
+
+    .fields {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px 20px;
+      align-content: start;
+    }
+
+    .field {
+      min-width: 0;
+    }
+
+    .field[data-input="textarea"],
+    .field[data-input="toggle"] {
+      grid-column: 1 / -1;
+    }
+
+    .field-label {
+      min-height: 21px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      color: #2c3731;
+      font-size: 13px;
+      font-weight: 620;
+    }
+
+    .requirement {
+      color: #7c8882;
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .requirement.required {
+      color: var(--danger);
+    }
+
+    .control {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid var(--line-strong);
+      border-radius: 5px;
+      background: #fff;
+      color: var(--ink);
+      outline: 0;
+      padding: 9px 11px;
+      transition: border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    textarea.control {
+      min-height: 82px;
+      resize: vertical;
+    }
+
+    .control:hover {
+      border-color: #87948d;
+    }
+
+    .control:focus {
+      border-color: var(--focus);
+      box-shadow: 0 0 0 3px rgb(47 127 92 / 14%);
+    }
+
+    .field[data-invalid="true"] .control {
+      border-color: var(--danger);
+      box-shadow: 0 0 0 2px rgb(180 35 24 / 9%);
+    }
+
+    .field-error {
+      min-height: 18px;
+      padding-top: 4px;
+      color: var(--danger);
+      font-size: 11px;
+      line-height: 1.25;
+    }
+
+    .field-help {
+      margin-top: -12px;
+      color: #69766f;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .field[data-invalid="true"] .field-help {
+      margin-top: 2px;
+    }
+
+    .toggle-row {
+      min-height: 44px;
+      padding: 0 1px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      border-bottom: 1px solid #e5e9e6;
+    }
+
+    .toggle-copy {
+      min-width: 0;
+    }
+
+    .toggle-copy .field-label {
+      min-height: 0;
+      margin: 0;
+      display: block;
+    }
+
+    .switch {
+      position: relative;
+      width: 42px;
+      height: 24px;
+      flex: 0 0 auto;
+    }
+
+    .switch input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+    }
+
+    .switch-track {
+      position: absolute;
+      inset: 0;
+      border: 1px solid #a7b1ab;
+      border-radius: 12px;
+      background: #dfe4e1;
+      transition: background 140ms ease, border-color 140ms ease;
+    }
+
+    .switch-track::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 2px rgb(20 30 25 / 25%);
+      transition: transform 140ms ease;
+    }
+
+    .switch input:checked + .switch-track {
+      border-color: var(--accent);
+      background: var(--accent);
+    }
+
+    .switch input:checked + .switch-track::after {
+      transform: translateX(18px);
+    }
+
+    .switch input:focus-visible + .switch-track {
+      box-shadow: 0 0 0 3px rgb(47 127 92 / 18%);
+    }
+
+    .form-actions {
+      min-height: 68px;
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .validation-state {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .validation-state[data-state="error"] {
+      color: var(--danger);
+    }
+
+    .primary-button,
+    .secondary-button,
+    .text-button {
+      min-height: 38px;
+      border-radius: 5px;
+      font-weight: 680;
+    }
+
+    .primary-button {
+      min-width: 112px;
+      padding: 0 18px;
+      border: 1px solid var(--accent-dark);
+      background: var(--accent);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .primary-button:hover:not(:disabled) {
+      background: var(--accent-dark);
+    }
+
+    .primary-button:disabled {
+      border-color: #bdc6c1;
+      background: #d7ddda;
+      color: #7d8982;
+    }
+
+    .play-icon {
+      width: 0;
+      height: 0;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+      border-left: 8px solid currentColor;
+    }
+
+    .secondary-button {
+      padding: 0 13px;
+      border: 1px solid #8f9a94;
+      background: #fff;
+      color: #39463f;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .secondary-button:hover:not(:disabled) {
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    .secondary-button:disabled {
+      color: #9aa49e;
+      background: #f2f4f3;
+      border-color: #d3d8d5;
+    }
+
+    .stop-icon {
+      width: 9px;
+      height: 9px;
+      border-radius: 1px;
+      background: currentColor;
+    }
+
+    .text-button {
+      min-height: 30px;
+      padding: 0 5px;
+      border: 0;
+      background: transparent;
+      color: #9fb0a6;
+      font-size: 12px;
+    }
+
+    .text-button:hover {
+      color: #fff;
+    }
+
+    .output-heading {
+      min-height: 46px;
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .run-meta {
+      min-width: 0;
+    }
+
+    .run-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .run-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #98a39d;
+    }
+
+    .run-status[data-status="running"] .run-status-dot {
+      background: #2a9b68;
+      box-shadow: 0 0 0 4px rgb(42 155 104 / 13%);
+    }
+
+    .run-status[data-status="stopping"] .run-status-dot {
+      background: var(--warning);
+    }
+
+    .run-status[data-status="succeeded"] .run-status-dot {
+      background: var(--accent);
+    }
+
+    .run-status[data-status="failed"] .run-status-dot,
+    .run-status[data-status="canceled"] .run-status-dot {
+      background: var(--danger);
+    }
+
+    .output-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+
+    .console {
+      width: 100%;
+      height: 536px;
+      margin: 0;
+      padding: 16px;
+      overflow: auto;
+      border: 1px solid #27322b;
+      border-radius: 6px;
+      background: var(--console);
+      color: var(--console-ink);
+      font: 12px/1.62 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      tab-size: 2;
+    }
+
+    .console:empty::before {
+      content: "No run yet";
+      color: #7f9086;
+    }
+
+    .nat-guide {
+      padding: 30px 0 8px;
+    }
+
+    .nat-guide[hidden] {
+      display: none;
+    }
+
+    .guide-heading {
+      display: grid;
+      grid-template-columns: minmax(220px, 0.7fr) minmax(360px, 1.3fr);
+      gap: 28px;
+      align-items: start;
+      margin-bottom: 22px;
+    }
+
+    .guide-title {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.3;
+      font-weight: 700;
+    }
+
+    .guide-intro {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .mapping-table-wrap {
+      overflow-x: auto;
+      border-top: 1px solid var(--line-strong);
+      border-bottom: 1px solid var(--line-strong);
+    }
+
+    .mapping-table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .mapping-table th,
+    .mapping-table td {
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    .mapping-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .mapping-table th {
+      background: #eef1ef;
+      color: #4c5852;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .mapping-code {
+      color: var(--accent-dark);
+      font-weight: 760;
+    }
+
+    .mapping-name {
+      display: block;
+      font-weight: 650;
+    }
+
+    .mapping-key {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+
+    .mapping-key {
+      color: #6e4c13;
+    }
+
+    .recognition {
+      margin-top: 27px;
+    }
+
+    .recognition-title {
+      margin: 0 0 13px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .recognition-steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .recognition-step {
+      min-width: 0;
+      padding: 17px 20px 18px 0;
+    }
+
+    .recognition-step + .recognition-step {
+      padding-left: 20px;
+      border-left: 1px solid var(--line);
+    }
+
+    .step-label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--warning);
+      font-size: 11px;
+      font-weight: 750;
+    }
+
+    .recognition-step p {
+      margin: 0;
+      color: #39463f;
+      line-height: 1.6;
+    }
+
+    .guide-note {
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .loading {
+      min-height: 300px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+    }
+
+    .loading[hidden],
+    #controlContent[hidden] {
+      display: none;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgb(13 20 16 / 48%);
+    }
+
+    .modal-backdrop[hidden] {
+      display: none;
+    }
+
+    .modal {
+      width: min(420px, 100%);
+      padding: 22px;
+      border: 1px solid #aab4ae;
+      border-radius: 7px;
+      background: #fff;
+      box-shadow: 0 18px 48px rgb(8 16 11 / 24%);
+    }
+
+    .modal-title {
+      margin: 0 0 18px;
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .modal-actions {
+      margin-top: 20px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 9px;
+    }
+
+    @media (max-width: 980px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .control-pane {
+        padding-right: 0;
+      }
+
+      .output-pane {
+        padding: 26px 0 28px;
+        border-top: 1px solid var(--line);
+        border-left: 0;
+      }
+
+      .console {
+        height: 390px;
+      }
+
+      .guide-heading {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .appbar-inner,
+      .shell {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .tabs {
+        gap: 22px;
+      }
+
+      .control-pane,
+      .output-pane {
+        padding-top: 22px;
+      }
+
+      .pane-heading {
+        min-height: 0;
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .role-switch {
+        width: 100%;
+      }
+
+      .fields {
+        grid-template-columns: 1fr;
+      }
+
+      .field[data-input="textarea"],
+      .field[data-input="toggle"] {
+        grid-column: auto;
+      }
+
+      .form-actions {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .primary-button {
+        width: 100%;
+      }
+
+      .profile-bar {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .profile-select {
+        grid-column: 1 / -1;
+      }
+
+      .output-heading {
+        align-items: center;
+      }
+
+      .console {
+        height: 350px;
+      }
+
+      .mapping-table-wrap {
+        overflow: visible;
+      }
+
+      .mapping-table {
+        min-width: 0;
+      }
+
+      .mapping-table thead {
+        display: none;
+      }
+
+      .mapping-table tbody,
+      .mapping-table tr,
+      .mapping-table td {
+        display: block;
+      }
+
+      .mapping-table tr {
+        position: relative;
+        padding: 15px 0 15px 64px;
+      }
+
+      .mapping-table tr + tr {
+        border-top: 1px solid var(--line);
+      }
+
+      .mapping-table td,
+      .mapping-table tr:last-child td {
+        padding: 0;
+        border-bottom: 0;
+      }
+
+      .mapping-table .mapping-code {
+        position: absolute;
+        top: 15px;
+        left: 0;
+      }
+
+      .mapping-name,
+      .mapping-key {
+        margin-bottom: 7px;
+        overflow-wrap: anywhere;
+      }
+
+      .recognition-steps {
+        grid-template-columns: 1fr;
+      }
+
+      .recognition-step,
+      .recognition-step + .recognition-step {
+        padding: 15px 0;
+        border-left: 0;
+      }
+
+      .recognition-step + .recognition-step {
+        border-top: 1px solid var(--line);
+      }
+    }
+
+    /* Product workspace */
+    :root {
+      --page: #e9edef;
+      --surface: #ffffff;
+      --ink: #17201c;
+      --muted: #64716b;
+      --line: #d8dfdb;
+      --line-strong: #b9c4be;
+      --accent: #08784f;
+      --accent-dark: #075c3e;
+      --accent-soft: #e5f4ed;
+      --rail: #151d1a;
+      --rail-surface: #202b27;
+      --rail-muted: #93a39b;
+      --warning: #b56a0a;
+      --console: #101714;
+      --console-ink: #d9e7df;
+    }
+
+    html {
+      min-height: 100%;
+      background: var(--rail);
+    }
+
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: grid;
+      grid-template-columns: 216px minmax(0, 1fr);
+      align-items: start;
+      background: var(--page);
+    }
+
+    .appbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      width: 216px;
+      height: 100vh;
+      height: 100dvh;
+      min-height: 0;
+      border: 0;
+      background: var(--rail);
+    }
+
+    .appbar-inner {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      padding: 22px 14px 18px;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
+      gap: 0;
+    }
+
+    .brand {
+      height: 42px;
+      padding: 0 8px;
+      gap: 10px;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-color: #56806c;
+      border-radius: 6px;
+      background: #1e3028;
+      color: #d6f3e3;
+    }
+
+    .brand-copy,
+    .tab-copy,
+    .guide-summary-copy {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-name {
+      color: #f7faf8;
+      font-size: 16px;
+    }
+
+    .brand-subtitle {
+      margin-top: 2px;
+      color: var(--rail-muted);
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .rail-label {
+      margin: 30px 10px 9px;
+      color: #6f8077;
+      font-size: 10px;
+      font-weight: 750;
+    }
+
+    .tabs {
+      width: 100%;
+      height: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 4px;
+      border: 0;
+      overflow: visible;
+    }
+
+    .tab {
+      width: 100%;
+      height: 52px;
+      padding: 0 10px;
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr);
+      align-items: center;
+      gap: 8px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: #aebbb4;
+      text-align: left;
+    }
+
+    .tab:hover {
+      background: #1b2521;
+      color: #e6eee9;
+    }
+
+    .tab[aria-selected="true"] {
+      border: 0;
+      background: var(--rail-surface);
+      color: #ffffff;
+      box-shadow: inset 3px 0 0 #48bd86;
+    }
+
+    .tab-icon {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #34433c;
+      border-radius: 5px;
+      color: #86a697;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .tab[aria-selected="true"] .tab-icon {
+      border-color: #3f6b57;
+      background: #263a31;
+      color: #8ee2b7;
+    }
+
+    .tab-name {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .tab-hint {
+      margin-top: 1px;
+      color: #718078;
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    .tab[aria-selected="true"] .tab-hint {
+      color: #9fb6aa;
+    }
+
+    .connection {
+      width: 100%;
+      min-height: 38px;
+      margin-top: auto;
+      padding: 0 10px;
+      border-top: 1px solid #26312c;
+      color: var(--rail-muted);
+    }
+
+    .shell {
+      width: 100%;
+      max-width: none;
+      min-width: 0;
+      margin: 0;
+      padding: 24px 28px 32px;
+    }
+
+    .workspace {
+      height: calc(100vh - 124px);
+      height: calc(100dvh - 124px);
+      min-height: 670px;
+      grid-template-columns: minmax(480px, 1.04fr) minmax(400px, 0.96fr);
+      overflow: hidden;
+      border: 1px solid #ccd5d0;
+      border-radius: 7px;
+      background: var(--surface);
+      box-shadow: 0 8px 24px rgb(25 42 33 / 7%);
+    }
+
+    .control-pane {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      padding: 26px 28px 28px;
+      overflow-y: auto;
+      background: var(--surface);
+    }
+
+    .output-pane {
+      min-width: 0;
+      min-height: 0;
+      padding: 26px 26px 24px;
+      overflow: hidden;
+      border-left: 1px solid #27332e;
+      background: var(--console);
+      color: var(--console-ink);
+    }
+
+    .pane-heading {
+      min-height: 52px;
+      margin-bottom: 18px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+      align-items: center;
+    }
+
+    .pane-title {
+      margin-bottom: 4px;
+      font-size: 19px;
+      font-weight: 740;
+    }
+
+    .command-line {
+      display: inline-block;
+      padding: 3px 7px;
+      border: 1px solid #dfe5e1;
+      border-radius: 4px;
+      background: #f4f6f5;
+      color: #68756e;
+    }
+
+    .role-switch {
+      width: 176px;
+      height: 38px;
+      border-color: #c7d0cb;
+      background: #edf1ef;
+    }
+
+    .profile-bar {
+      min-height: 58px;
+      margin-bottom: 22px;
+      padding: 10px;
+      grid-template-columns: auto minmax(150px, 1fr) auto auto;
+      gap: 8px;
+      border: 1px solid #dbe2de;
+      border-radius: 6px;
+      background: #f6f8f7;
+    }
+
+    .profile-label {
+      padding: 0 3px;
+      color: #536159;
+      font-size: 11px;
+      font-weight: 720;
+      white-space: nowrap;
+    }
+
+    .profile-select,
+    .profile-button {
+      height: 36px;
+      border-radius: 5px;
+    }
+
+    .profile-button {
+      background: #ffffff;
+    }
+
+    .fields {
+      gap: 15px 18px;
+    }
+
+    .field-label {
+      margin-bottom: 5px;
+      color: #39463f;
+      font-size: 12px;
+    }
+
+    .control {
+      min-height: 42px;
+      border-color: #b9c5bf;
+      border-radius: 5px;
+      background: #fbfcfb;
+    }
+
+    .control:focus {
+      background: #ffffff;
+    }
+
+    textarea.control {
+      min-height: 94px;
+    }
+
+    .form-actions {
+      min-height: 70px;
+      margin-top: 18px;
+      padding-top: 18px;
+    }
+
+    .primary-button {
+      min-width: 124px;
+      min-height: 42px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgb(7 92 62 / 18%);
+    }
+
+    .output-heading {
+      min-height: 52px;
+      margin-bottom: 18px;
+      padding-bottom: 18px;
+      align-items: center;
+      border-bottom: 1px solid #29352f;
+    }
+
+    .output-pane .pane-title {
+      color: #f2f7f4;
+    }
+
+    .output-pane .run-status {
+      color: #83938b;
+    }
+
+    .output-pane .text-button {
+      color: #93a49b;
+    }
+
+    .output-pane .text-button:hover {
+      color: #ffffff;
+    }
+
+    .output-pane .text-button:disabled {
+      color: #536159;
+      cursor: default;
+    }
+
+    .output-pane .secondary-button {
+      border-color: #4b5b53;
+      background: #1d2823;
+      color: #c8d5ce;
+    }
+
+    .output-pane .secondary-button:disabled {
+      border-color: #2c3732;
+      background: #161f1b;
+      color: #65736c;
+    }
+
+    .console {
+      height: 0;
+      min-height: 0;
+      flex: 1 1 0;
+      padding: 2px 12px 0 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-color: #425149 transparent;
+      scrollbar-width: thin;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: var(--console-ink);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .console:empty::before {
+      content: "Waiting for a run";
+      color: #607068;
+    }
+
+    .nat-guide {
+      margin-top: 14px;
+      padding: 0;
+      overflow: hidden;
+      border: 1px solid #ced7d2;
+      border-radius: 6px;
+      background: #f9fbfa;
+    }
+
+    .guide-summary {
+      min-height: 62px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      list-style: none;
+      cursor: pointer;
+    }
+
+    .guide-summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .guide-title {
+      color: #27332d;
+      font-size: 13px;
+      font-weight: 720;
+    }
+
+    .guide-intro {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .summary-chevron {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 auto;
+      border-right: 2px solid #7d8b84;
+      border-bottom: 2px solid #7d8b84;
+      transform: rotate(45deg);
+      transition: transform 150ms ease;
+    }
+
+    .nat-guide[open] .summary-chevron {
+      transform: rotate(225deg);
+    }
+
+    .guide-body {
+      padding: 22px 18px 18px;
+      border-top: 1px solid var(--line);
+      background: #ffffff;
+    }
+
+    .mapping-table-wrap {
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .mapping-table th {
+      background: #f0f3f1;
+    }
+
+    .recognition {
+      margin-top: 22px;
+    }
+
+    .loading {
+      min-height: 480px;
+    }
+
+    .modal {
+      border-radius: 7px;
+    }
+
+    @media (max-width: 1120px) {
+      body {
+        grid-template-columns: 196px minmax(0, 1fr);
+      }
+
+      .appbar {
+        width: 196px;
+      }
+
+      .shell {
+        padding: 20px;
+      }
+
+      .workspace {
+        height: auto;
+        min-height: 0;
+        grid-template-columns: 1fr;
+      }
+
+      .output-pane {
+        min-height: 520px;
+        border-top: 1px solid #27332e;
+        border-left: 0;
+      }
+
+      .console {
+        height: 390px;
+        min-height: 390px;
+        max-height: 390px;
+        flex: 0 0 390px;
+      }
+    }
+
+    @media (max-width: 760px) {
+      body {
+        display: block;
+      }
+
+      .appbar {
+        position: sticky;
+        width: 100%;
+        height: auto;
+        min-height: 0;
+      }
+
+      .appbar-inner {
+        min-height: 116px;
+        padding: 12px 14px 10px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px 12px;
+      }
+
+      .brand {
+        height: 36px;
+        padding: 0;
+      }
+
+      .brand-mark {
+        width: 32px;
+        height: 32px;
+      }
+
+      .rail-label {
+        display: none;
+      }
+
+      .connection {
+        width: auto;
+        min-height: 30px;
+        margin: 0;
+        padding: 0;
+        border: 0;
+      }
+
+      .tabs {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 5px;
+      }
+
+      .tab {
+        height: 46px;
+        padding: 0 6px;
+        display: flex;
+        justify-content: center;
+        gap: 5px;
+        text-align: center;
+      }
+
+      .tab-icon {
+        width: 24px;
+        height: 24px;
+        font-size: 14px;
+      }
+
+      .tab-copy {
+        display: block;
+      }
+
+      .tab-name {
+        font-size: 11px;
+      }
+
+      .tab-hint {
+        display: none;
+      }
+
+      .shell {
+        padding: 12px;
+      }
+
+      .workspace {
+        border-radius: 6px;
+      }
+
+      .control-pane,
+      .output-pane {
+        padding: 20px 18px;
+      }
+
+      .pane-heading {
+        align-items: stretch;
+      }
+
+      .role-switch {
+        width: 100%;
+      }
+
+      .profile-bar {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .profile-label,
+      .profile-select {
+        grid-column: 1 / -1;
+      }
+
+      .fields {
+        grid-template-columns: 1fr;
+      }
+
+      .field[data-input="textarea"],
+      .field[data-input="toggle"] {
+        grid-column: auto;
+      }
+
+      .form-actions {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .primary-button {
+        width: 100%;
+      }
+
+      .output-pane {
+        min-height: 460px;
+      }
+
+      .console {
+        height: 330px;
+        min-height: 330px;
+        max-height: 330px;
+        flex-basis: 330px;
+      }
+
+      .guide-summary {
+        min-height: 58px;
+      }
+
+      .guide-body {
+        padding: 18px 14px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .brand-subtitle {
+        display: none;
+      }
+
+      .tab {
+        flex-direction: column;
+        gap: 1px;
+      }
+
+      .tab-icon {
+        height: 20px;
+        border: 0;
+        background: transparent;
+      }
+
+      .tab[aria-selected="true"] .tab-icon {
+        border: 0;
+        background: transparent;
+      }
+
+      .output-heading {
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="appbar">
+    <div class="appbar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">B</div>
+        <div class="brand-copy">
+          <h1 class="brand-name">Burrow</h1>
+          <span class="brand-subtitle">Network Toolkit</span>
+        </div>
+      </div>
+      <span class="rail-label">Tools</span>
+      <nav class="tabs" id="tabs" aria-label="Tools">
+        <button class="tab" type="button" data-tab="tcpnat" aria-selected="true">
+          <span class="tab-icon" aria-hidden="true">↔</span>
+          <span class="tab-copy"><span class="tab-name">TCP NAT</span><span class="tab-hint">Mapping probe</span></span>
+        </button>
+        <button class="tab" type="button" data-tab="stun" aria-selected="false">
+          <span class="tab-icon" aria-hidden="true">◎</span>
+          <span class="tab-copy"><span class="tab-name">STUN</span><span class="tab-hint">NAT type</span></span>
+        </button>
+        <button class="tab" type="button" data-tab="punch" aria-selected="false">
+          <span class="tab-icon" aria-hidden="true">⇄</span>
+          <span class="tab-copy"><span class="tab-name">Punch</span><span class="tab-hint">Hole punching</span></span>
+        </button>
+        <button class="tab" type="button" data-tab="birthday" aria-selected="false">
+          <span class="tab-icon" aria-hidden="true">⌗</span>
+          <span class="tab-copy"><span class="tab-name">Birthday</span><span class="tab-hint">Collision test</span></span>
+        </button>
+      </nav>
+      <div class="connection" id="connection" data-state="loading">
+        <span class="connection-dot" aria-hidden="true"></span>
+        <span id="connectionText">Connecting</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="workspace" id="workspace">
+      <div class="control-pane">
+        <div class="loading" id="loading">Loading parameters</div>
+        <div id="controlContent" hidden>
+          <div class="pane-heading">
+            <div>
+              <h2 class="pane-title" id="formTitle"></h2>
+              <div class="command-line" id="commandLine"></div>
+            </div>
+            <div class="role-switch" id="roleSwitch" hidden aria-label="Role"></div>
+          </div>
+
+          <div class="form-notice" id="formNotice" role="alert" data-visible="false"></div>
+          <form id="commandForm" novalidate>
+            <div class="profile-bar" aria-label="Named profiles">
+              <label class="profile-label" for="profileSelect">Profile</label>
+              <select class="profile-select" id="profileSelect" aria-label="Saved profiles">
+                <option value="">Saved profiles</option>
+              </select>
+              <button class="profile-button" id="saveProfileButton" type="button">Save profile</button>
+              <button class="profile-button danger" id="deleteProfileButton" type="button" disabled>Delete</button>
+            </div>
+            <div class="fields" id="fields"></div>
+            <div class="form-actions">
+              <span class="validation-state" id="validationState"></span>
+              <button class="primary-button" id="runButton" type="submit" disabled>
+                <span class="play-icon" aria-hidden="true"></span>
+                Run
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <aside class="output-pane" aria-label="Run output">
+        <div class="output-heading">
+          <div class="run-meta">
+            <h2 class="pane-title">Run log</h2>
+            <div class="run-status" id="runStatus" data-status="idle">
+              <span class="run-status-dot" aria-hidden="true"></span>
+              <span id="runStatusText">Idle</span>
+            </div>
+          </div>
+          <div class="output-actions">
+            <button class="text-button" id="copyButton" type="button" disabled>Copy log</button>
+            <button class="text-button" id="clearButton" type="button" disabled>Clear</button>
+            <button class="secondary-button" id="stopButton" type="button" disabled>
+              <span class="stop-icon" aria-hidden="true"></span>
+              Stop
+            </button>
+          </div>
+        </div>
+        <pre class="console" id="console" aria-live="polite"></pre>
+      </aside>
+    </section>
+
+    <details class="nat-guide" id="natGuide">
+      <summary class="guide-summary">
+        <span class="guide-summary-copy">
+          <strong class="guide-title" id="natGuideTitle">NAT mapping types</strong>
+          <span class="guide-intro">How to tell EIM, ADM and APDM apart</span>
+        </span>
+        <span class="summary-chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="guide-body">
+
+      <div class="mapping-table-wrap">
+        <table class="mapping-table">
+          <thead>
+            <tr>
+              <th scope="col">Type</th>
+              <th scope="col">Name</th>
+              <th scope="col">Mapping key</th>
+              <th scope="col">Meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mapping-code">EIM</td>
+              <td><span class="mapping-name">Endpoint-Independent Mapping</span></td>
+              <td class="mapping-key">Local IP:port</td>
+              <td>The same local endpoint keeps one public mapping for every destination.</td>
+            </tr>
+            <tr>
+              <td class="mapping-code">ADM</td>
+              <td><span class="mapping-name">Address-Dependent Mapping</span></td>
+              <td class="mapping-key">Local IP:port + destination IP</td>
+              <td>The mapping is reused across ports of one destination IP; a new destination IP may get a new mapping.</td>
+            </tr>
+            <tr>
+              <td class="mapping-code">APDM</td>
+              <td><span class="mapping-name">Address and Port-Dependent Mapping</span></td>
+              <td class="mapping-key">Local IP:port + destination IP:port</td>
+              <td>Both destination IP and port select the mapping; a new destination port may get a new mapping.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="recognition">
+        <h3 class="recognition-title">How to identify</h3>
+        <div class="recognition-steps">
+          <div class="recognition-step">
+            <span class="step-label">01 - Compare destination ports</span>
+            <p>If several ports of one destination IP see the same public mapping, the NAT is an EIM/ADM candidate; if the mapping changes with the destination port, it is an APDM candidate.</p>
+          </div>
+          <div class="recognition-step">
+            <span class="step-label">02 - Add a destination IP</span>
+            <p>Repeat the probe against a second public IP. If both destination IPs share the mapping, the NAT is EIM; if the mapping changes with the destination IP, it is ADM.</p>
+          </div>
+          <div class="recognition-step">
+            <span class="step-label">03 - Confirm over several rounds</span>
+            <p>Each round opens a new mapping from a new local port. Consistent results across rounds give a more reliable classification.</p>
+          </div>
+        </div>
+        <p class="guide-note">Mapping type describes how outbound connections are translated. Inbound filtering is a separate NAT property and needs its own test.</p>
+      </div>
+      </div>
+    </details>
+
+    <details class="nat-guide" id="stunGuide" hidden>
+      <summary class="guide-summary">
+        <span class="guide-summary-copy">
+          <strong class="guide-title" id="stunGuideTitle">Reading STUN results</strong>
+          <span class="guide-intro"><code class="mapping-key">stun.miwifi.com:3478</code> and NAT classification</span>
+        </span>
+        <span class="summary-chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="guide-body">
+
+      <div class="mapping-table-wrap">
+        <table class="mapping-table">
+          <thead>
+            <tr>
+              <th scope="col">Type</th>
+              <th scope="col">Name</th>
+              <th scope="col">Typical combination</th>
+              <th scope="col">Meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mapping-code">FC</td>
+              <td><span class="mapping-name">Full Cone NAT</span></td>
+              <td class="mapping-key">EIM + EIF</td>
+              <td>The public mapping is widely reused and inbound filtering is open; UDP hole punching works well.</td>
+            </tr>
+            <tr>
+              <td class="mapping-code">RC</td>
+              <td><span class="mapping-name">Restricted Cone NAT</span></td>
+              <td class="mapping-key">EIM + ADF</td>
+              <td>The public mapping is stable; inbound traffic must come from an IP that was contacted.</td>
+            </tr>
+            <tr>
+              <td class="mapping-code">PRC</td>
+              <td><span class="mapping-name">Port Restricted Cone NAT</span></td>
+              <td class="mapping-key">EIM + APDF</td>
+              <td>The public mapping is stable; inbound traffic must match both a contacted IP and port.</td>
+            </tr>
+            <tr>
+              <td class="mapping-code">SYM</td>
+              <td><span class="mapping-name">Symmetric NAT</span></td>
+              <td class="mapping-key">APDM + APDF</td>
+              <td>The public mapping depends on destination IP and port; hole punching usually needs port prediction or candidate scanning.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="recognition">
+        <h3 class="recognition-title">What is measured</h3>
+        <div class="recognition-steps">
+          <div class="recognition-step">
+            <span class="step-label">01 - Public mapping</span>
+            <p>A basic Binding request returns the public UDP address: the IP and port of this socket after NAT translation.</p>
+          </div>
+          <div class="recognition-step">
+            <span class="step-label">02 - Mapping behavior</span>
+            <p>EIM, ADM and APDM describe how much the public mapping depends on the destination address and port.</p>
+          </div>
+          <div class="recognition-step">
+            <span class="step-label">03 - Filtering behavior</span>
+            <p>EIF, ADF and APDF describe which source IPs and ports the NAT accepts for inbound traffic.</p>
+          </div>
+        </div>
+        <p class="guide-note">A full classification needs a STUN server that supports RFC 5780 OTHER-ADDRESS and CHANGE-REQUEST. A basic server still reports the public mapping; the run output states what the server supports.</p>
+      </div>
+      </div>
+    </details>
+  </main>
+
+  <div class="modal-backdrop" id="saveModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="saveModalTitle">
+      <h2 class="modal-title" id="saveModalTitle">Save profile</h2>
+      <form id="saveProfileForm" novalidate>
+        <div class="field" id="profileNameField" data-invalid="false">
+          <label class="field-label" for="profileName">
+            <span>Profile name</span><span class="requirement required">* required</span>
+          </label>
+          <input class="control" id="profileName" type="text" maxlength="64" autocomplete="off">
+          <div class="field-error" id="profileNameError"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="profile-button" id="cancelSaveButton" type="button">Cancel</button>
+          <button class="primary-button" id="confirmSaveButton" type="submit" disabled>Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const state = {
+        catalog: null,
+        activeTab: "tcpnat",
+        roles: { punch: "client", birthday: "client" },
+        values: {},
+        profiles: {},
+        selectedProfiles: {},
+        currentRun: null,
+        eventSource: null,
+        pollTimer: null,
+        submitting: false
+      };
+
+      const elements = {
+        connection: document.getElementById("connection"),
+        connectionText: document.getElementById("connectionText"),
+        tabs: document.getElementById("tabs"),
+        loading: document.getElementById("loading"),
+        controlContent: document.getElementById("controlContent"),
+        formTitle: document.getElementById("formTitle"),
+        commandLine: document.getElementById("commandLine"),
+        roleSwitch: document.getElementById("roleSwitch"),
+        formNotice: document.getElementById("formNotice"),
+        form: document.getElementById("commandForm"),
+        profileSelect: document.getElementById("profileSelect"),
+        saveProfileButton: document.getElementById("saveProfileButton"),
+        deleteProfileButton: document.getElementById("deleteProfileButton"),
+        fields: document.getElementById("fields"),
+        validationState: document.getElementById("validationState"),
+        runButton: document.getElementById("runButton"),
+        stopButton: document.getElementById("stopButton"),
+        copyButton: document.getElementById("copyButton"),
+        clearButton: document.getElementById("clearButton"),
+        runStatus: document.getElementById("runStatus"),
+        runStatusText: document.getElementById("runStatusText"),
+        console: document.getElementById("console"),
+        natGuide: document.getElementById("natGuide"),
+        stunGuide: document.getElementById("stunGuide"),
+        saveModal: document.getElementById("saveModal"),
+        saveProfileForm: document.getElementById("saveProfileForm"),
+        profileNameField: document.getElementById("profileNameField"),
+        profileName: document.getElementById("profileName"),
+        profileNameError: document.getElementById("profileNameError"),
+        cancelSaveButton: document.getElementById("cancelSaveButton"),
+        confirmSaveButton: document.getElementById("confirmSaveButton")
+      };
+
+      const profileStorageKey = "burrow.cli.profiles.v1";
+
+      function escapeHTML(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function currentTab() {
+        return state.catalog.tabs.find((tab) => tab.id === state.activeTab);
+      }
+
+      function currentCommand() {
+        const tab = currentTab();
+        if (tab.commands.length === 1) return tab.commands[0];
+        return tab.commands.find((command) => command.role === state.roles[tab.id]) || tab.commands[0];
+      }
+
+      function valuesFor(command) {
+        if (!state.values[command.id]) {
+          state.values[command.id] = Object.fromEntries(
+            command.fields.map((field) => [field.name, field.default])
+          );
+        }
+        return state.values[command.id];
+      }
+
+      function loadProfilesFromStorage() {
+        try {
+          const stored = localStorage.getItem(profileStorageKey);
+          const parsed = stored ? JSON.parse(stored) : {};
+          if (!isRecord(parsed)) return {};
+          const profiles = {};
+          for (const [commandID, commandProfiles] of Object.entries(parsed)) {
+            if (!isRecord(commandProfiles)) continue;
+            profiles[commandID] = {};
+            for (const [name, profile] of Object.entries(commandProfiles)) {
+              if (!name.trim() || name.length > 64 || !isRecord(profile) || !isRecord(profile.values)) continue;
+              profiles[commandID][name] = {
+                values: { ...profile.values },
+                updatedAt: typeof profile.updatedAt === "string" ? profile.updatedAt : ""
+              };
+            }
+          }
+          return profiles;
+        } catch (_) {
+          return {};
+        }
+      }
+
+      function isRecord(value) {
+        return value !== null && typeof value === "object" && !Array.isArray(value);
+      }
+
+      function persistProfiles(profiles) {
+        localStorage.setItem(profileStorageKey, JSON.stringify(profiles));
+      }
+
+      function profilesFor(command) {
+        if (!state.profiles[command.id]) state.profiles[command.id] = {};
+        return state.profiles[command.id];
+      }
+
+      function showNotice(message, kind = "error") {
+        elements.formNotice.textContent = message;
+        elements.formNotice.dataset.kind = kind;
+        elements.formNotice.dataset.visible = String(Boolean(message));
+      }
+
+      function renderProfiles(command) {
+        const profiles = profilesFor(command);
+        const names = Object.keys(profiles).sort((a, b) => a.localeCompare(b, "zh-CN"));
+        const selected = state.selectedProfiles[command.id] || "";
+        const options = [new Option("Saved profiles", "")];
+        for (const name of names) options.push(new Option(name, name, false, name === selected));
+        elements.profileSelect.replaceChildren(...options);
+        if (!names.includes(selected)) state.selectedProfiles[command.id] = "";
+        const hasSelection = Boolean(state.selectedProfiles[command.id]);
+        elements.deleteProfileButton.disabled = !hasSelection;
+      }
+
+      function isConditionallyRequired(command, field, values) {
+        if (field.required) return true;
+        return command.id === "birthday/server" && values.mode === "fixed" &&
+          (field.name === "local-port" || field.name === "public-address");
+      }
+
+      function validate(command, values) {
+        const errors = {};
+        for (const field of command.fields) {
+          const value = values[field.name];
+          const required = isConditionallyRequired(command, field, values);
+          if (required && (value === "" || value === null || value === undefined)) {
+            errors[field.name] = "This field is required";
+            continue;
+          }
+          if (field.type === "integer") {
+            const number = Number(value);
+            if (!Number.isInteger(number)) {
+              errors[field.name] = "Enter an integer";
+            } else if (field.minimum !== undefined && number < field.minimum) {
+              errors[field.name] = `Minimum is ${field.minimum}`;
+            } else if (field.maximum !== undefined && number > field.maximum) {
+              errors[field.name] = `Maximum is ${field.maximum}`;
+            }
+          }
+          if (field.type === "duration" && !isGoDuration(String(value))) {
+            errors[field.name] = "Enter a valid duration such as 3s or 250ms";
+          }
+        }
+
+        if (command.id === "tcpnat") {
+          const ports = String(values.ports || "").split(",").map((port) => port.trim()).filter(Boolean);
+          const uniquePorts = new Set(ports);
+          if (uniquePorts.size < 2 || ports.some((port) => !/^\d+$/.test(port) || Number(port) < 1 || Number(port) > 65535)) {
+            errors.ports = "Enter at least two valid ports";
+          }
+        }
+
+        if (command.id === "birthday/client") {
+          const minPort = Number(values["min-port"]);
+          const maxPort = Number(values["max-port"]);
+          const candidates = Number(values.candidates);
+          if (minPort > maxPort) {
+            errors["max-port"] = "Max port must be greater than or equal to min port";
+          } else if (maxPort - minPort + 1 < candidates) {
+            errors.candidates = "Candidates exceed the port range";
+          }
+          if (minPort < 1 || maxPort > 65535) {
+            errors["max-port"] = "Port range must be within 1-65535";
+          }
+        }
+
+        if (command.id === "birthday/server" && values.mode === "fixed" && Number(values["local-port"]) < 1) {
+          errors["local-port"] = "Enter a port between 1 and 65535";
+        }
+
+        if (command.id === "birthday/server") {
+          const addresses = String(values.signal || "").split(/[\s,;]+/).filter(Boolean);
+          if (addresses.length === 0 || addresses.some((address) => !isIPv4SignalEndpoint(address))) {
+            errors.signal = "Enter one valid IPv4:port/path per line";
+          }
+        }
+
+        if (command.id === "punch/client" && values.bench && !/^\d+(KB|MB|GB|B)?$/i.test(String(values.size))) {
+          errors.size = "Enter 50MB, 1GB or a byte count";
+        }
+        return errors;
+      }
+
+      function isGoDuration(value) {
+        return /^(?:\d+(?:\.\d+)?(?:ns|us|ms|s|m|h))+$/.test(value.trim());
+      }
+
+      function isIPv4SignalEndpoint(value) {
+        const address = value.trim().replace(/^wss?:\/\//, "");
+        const slash = address.indexOf("/");
+        const authority = slash >= 0 ? address.slice(0, slash) : address;
+        const path = slash >= 0 ? address.slice(slash) : "";
+        const separator = authority.lastIndexOf(":");
+        if (separator < 1 || (path && (!path.startsWith("/") || /[?#]/.test(path)))) return false;
+        const host = authority.slice(0, separator);
+        const port = Number(authority.slice(separator + 1));
+        const octets = host.split(".");
+        return octets.length === 4 && octets.every((octet) => /^\d{1,3}$/.test(octet) && Number(octet) <= 255) &&
+          Number.isInteger(port) && port >= 1 && port <= 65535;
+      }
+
+      function renderTabs() {
+        for (const button of elements.tabs.querySelectorAll(".tab")) {
+          button.setAttribute("aria-selected", String(button.dataset.tab === state.activeTab));
+        }
+      }
+
+      function renderRoleSwitch(tab) {
+        if (tab.commands.length < 2) {
+          elements.roleSwitch.hidden = true;
+          elements.roleSwitch.innerHTML = "";
+          return;
+        }
+        elements.roleSwitch.hidden = false;
+        elements.roleSwitch.innerHTML = ["client", "server"].map((role) => `
+          <button type="button" data-role="${role}" aria-pressed="${state.roles[tab.id] === role}">
+            ${role === "client" ? "Client" : "Server"}
+          </button>
+        `).join("");
+      }
+
+      function renderField(command, field, values) {
+        const value = values[field.name];
+        const required = isConditionallyRequired(command, field, values);
+        const requirement = required
+          ? '<span class="requirement required">* required</span>'
+          : '<span class="requirement">optional</span>';
+        const title = escapeHTML(field.description || field.label);
+        const helpText = fieldHelp(command, field);
+        const help = helpText ? `<div class="field-help">${escapeHTML(helpText)}</div>` : "";
+        let control;
+
+        if (field.input === "toggle") {
+          return `
+            <div class="field" data-field="${escapeHTML(field.name)}" data-input="toggle" data-invalid="false">
+              <div class="toggle-row" title="${title}">
+                <div class="toggle-copy">
+                  <label class="field-label" for="field-${escapeHTML(field.name)}">${escapeHTML(field.label)}</label>
+                </div>
+                <label class="switch">
+                  <input id="field-${escapeHTML(field.name)}" name="${escapeHTML(field.name)}" type="checkbox" ${value ? "checked" : ""}>
+                  <span class="switch-track" aria-hidden="true"></span>
+                </label>
+              </div>
+              <div class="field-error" data-error-for="${escapeHTML(field.name)}"></div>
+            </div>
+          `;
+        }
+
+        if (field.input === "select") {
+          control = `<select class="control" id="field-${escapeHTML(field.name)}" name="${escapeHTML(field.name)}" title="${title}">
+            ${field.options.map((option) => `<option value="${escapeHTML(option)}" ${value === option ? "selected" : ""}>${escapeHTML(optionLabel(command, field, option))}</option>`).join("")}
+          </select>`;
+        } else if (field.input === "textarea") {
+          control = `<textarea class="control" id="field-${escapeHTML(field.name)}" name="${escapeHTML(field.name)}" title="${title}">${escapeHTML(value ?? "")}</textarea>`;
+        } else {
+          const type = field.input === "number" ? "number" : "text";
+          const min = field.minimum !== undefined ? ` min="${field.minimum}"` : "";
+          const max = field.maximum !== undefined ? ` max="${field.maximum}"` : "";
+          control = `<input class="control" id="field-${escapeHTML(field.name)}" name="${escapeHTML(field.name)}" type="${type}" value="${escapeHTML(value ?? "")}"${min}${max} title="${title}" autocomplete="off">`;
+        }
+
+        return `
+          <div class="field" data-field="${escapeHTML(field.name)}" data-input="${escapeHTML(field.input)}" data-invalid="false">
+            <label class="field-label" for="field-${escapeHTML(field.name)}">
+              <span>${escapeHTML(field.label)}</span>${requirement}
+            </label>
+            ${control}
+            <div class="field-error" data-error-for="${escapeHTML(field.name)}"></div>
+            ${help}
+          </div>
+        `;
+      }
+
+      function optionLabel(command, field, option) {
+        if (command.id === "birthday/server" && field.name === "mode") {
+          return {
+            nat: "Home/office network (NAT)",
+            fixed: "Public host/port forward (fixed address)"
+          }[option] || option;
+        }
+        return option;
+      }
+
+      function fieldHelp(command, field) {
+        if (command.id !== "birthday/server") return "";
+        if (field.name === "signal") return field.description;
+        if (field.name === "mode") {
+          return "Behind a home or office NAT the public mapping is probed automatically; a public host or port forward uses a fixed entry point.";
+        }
+        return "";
+      }
+
+      function shouldRenderField(command, field, values) {
+        if (command.id !== "birthday/server") return true;
+        const fixedOnly = field.name === "local-port" || field.name === "public-address";
+        return !fixedOnly || values.mode === "fixed";
+      }
+
+      function renderForm() {
+        const tab = currentTab();
+        const command = currentCommand();
+        const values = valuesFor(command);
+        renderTabs();
+        renderRoleSwitch(tab);
+        elements.natGuide.hidden = tab.id !== "tcpnat";
+        elements.stunGuide.hidden = tab.id !== "stun";
+        elements.formTitle.textContent = command.title;
+        elements.commandLine.textContent = `cli ${command.command}`;
+        elements.fields.innerHTML = command.fields
+          .filter((field) => shouldRenderField(command, field, values))
+          .map((field) => renderField(command, field, values))
+          .join("");
+        showNotice("");
+        renderProfiles(command);
+        updateValidation();
+      }
+
+      function openSaveModal() {
+        const command = currentCommand();
+        elements.profileName.value = state.selectedProfiles[command.id] || "";
+        elements.saveModal.hidden = false;
+        validateProfileName();
+        requestAnimationFrame(() => elements.profileName.focus());
+      }
+
+      function closeSaveModal() {
+        elements.saveModal.hidden = true;
+        elements.profileName.value = "";
+        elements.profileNameError.textContent = "";
+        elements.profileNameField.dataset.invalid = "false";
+      }
+
+      function validateProfileName() {
+        const name = elements.profileName.value.trim();
+        let error = "";
+        if (!name) error = "Enter a profile name";
+        if (name.length > 64) error = "Name must be at most 64 characters";
+        elements.profileNameError.textContent = error;
+        elements.profileNameField.dataset.invalid = String(Boolean(error));
+        elements.confirmSaveButton.disabled = Boolean(error);
+        return { name, error };
+      }
+
+      function saveNamedProfile() {
+        const { name, error } = validateProfileName();
+        if (error) return;
+        const command = currentCommand();
+        const nextProfiles = {
+          ...state.profiles,
+          [command.id]: {
+            ...profilesFor(command),
+            [name]: {
+              values: { ...valuesFor(command) },
+              updatedAt: new Date().toISOString()
+            }
+          }
+        };
+        try {
+          persistProfiles(nextProfiles);
+          state.profiles = nextProfiles;
+          state.selectedProfiles[command.id] = name;
+          closeSaveModal();
+          renderProfiles(command);
+          showNotice(`Profile "${name}" saved`, "success");
+        } catch (saveError) {
+          closeSaveModal();
+          showNotice(`Save failed: ${saveError.message}`);
+        }
+      }
+
+      function loadNamedProfile() {
+        const command = currentCommand();
+        const name = state.selectedProfiles[command.id];
+        const profile = profilesFor(command)[name];
+        if (!profile) return;
+        const profileValues = { ...profile.values };
+        const signalField = command.id === "tcpnat" ? "server" : "signal";
+        if (profileValues.signal_path && profileValues[signalField]) {
+          profileValues[signalField] = mergeLegacySignalPath(profileValues[signalField], profileValues.signal_path);
+        }
+        if (command.id === "birthday/server" && profileValues["probe-signals"]) {
+          const addresses = `${profileValues.signal || ""}\n${profileValues["probe-signals"]}`
+            .split(/[\s,;]+/)
+            .filter(Boolean);
+          profileValues.signal = [...new Set(addresses)].join("\n");
+        }
+        if (command.id === "birthday/server" && profileValues.mode === "auto") {
+          profileValues.mode = "nat";
+        }
+        state.values[command.id] = Object.fromEntries(command.fields.map((field) => [
+          field.name,
+          Object.hasOwn(profileValues, field.name) ? profileValues[field.name] : field.default
+        ]));
+        renderForm();
+        showNotice(`Profile "${name}" loaded`, "success");
+      }
+
+      function mergeLegacySignalPath(address, path) {
+        const value = String(address).trim();
+        const schemeEnd = value.indexOf("://");
+        const pathStart = value.indexOf("/", schemeEnd >= 0 ? schemeEnd + 3 : 0);
+        if (pathStart >= 0) return value;
+        const normalizedPath = `/${String(path).trim().replace(/^\/+|\/+$/g, "")}`;
+        return normalizedPath === "/" ? value : `${value.replace(/\/+$/g, "")}${normalizedPath}`;
+      }
+
+      function deleteNamedProfile() {
+        const command = currentCommand();
+        const name = state.selectedProfiles[command.id];
+        if (!name || !profilesFor(command)[name]) return;
+        if (!window.confirm(`Delete profile "${name}"?`)) return;
+        const nextCommandProfiles = { ...profilesFor(command) };
+        delete nextCommandProfiles[name];
+        const nextProfiles = { ...state.profiles, [command.id]: nextCommandProfiles };
+        try {
+          persistProfiles(nextProfiles);
+          state.profiles = nextProfiles;
+          state.selectedProfiles[command.id] = "";
+          renderProfiles(command);
+          showNotice(`Profile "${name}" deleted`, "success");
+        } catch (deleteError) {
+          showNotice(`Delete failed: ${deleteError.message}`);
+        }
+      }
+
+      function updateValidation() {
+        const command = currentCommand();
+        const errors = validate(command, valuesFor(command));
+        for (const field of command.fields) {
+          const wrapper = elements.fields.querySelector(`[data-field="${CSS.escape(field.name)}"]`);
+          const errorNode = elements.fields.querySelector(`[data-error-for="${CSS.escape(field.name)}"]`);
+          const message = errors[field.name] || "";
+          if (wrapper) wrapper.dataset.invalid = String(Boolean(message));
+          if (errorNode) errorNode.textContent = message;
+        }
+        const count = Object.keys(errors).length;
+        const busy = isRunActive() || state.submitting;
+        elements.runButton.disabled = count > 0 || busy;
+        elements.validationState.dataset.state = count > 0 ? "error" : "ready";
+        elements.validationState.textContent = count > 0 ? `${count} field${count === 1 ? " needs" : "s need"} attention` : "All fields valid";
+        return errors;
+      }
+
+      function readInputValue(target, field) {
+        if (field.type === "boolean") return target.checked;
+        return target.value;
+      }
+
+      function isRunActive() {
+        return state.currentRun && (state.currentRun.status === "running" || state.currentRun.status === "stopping");
+      }
+
+      function isTerminalRunStatus(status) {
+        return status === "succeeded" || status === "failed" || status === "canceled";
+      }
+
+      function setRunStatus(run) {
+        if (run && state.currentRun && run.id === state.currentRun.id &&
+            isTerminalRunStatus(state.currentRun.status) && !isTerminalRunStatus(run.status)) {
+          return;
+        }
+        state.currentRun = run;
+        const labels = {
+          idle: "Idle",
+          running: "Running",
+          stopping: "Stopping",
+          succeeded: "Succeeded",
+          failed: "Failed",
+          canceled: "Stopped"
+        };
+        const status = run ? run.status : "idle";
+        elements.runStatus.dataset.status = status;
+        elements.runStatusText.textContent = labels[status] || status;
+        elements.stopButton.disabled = status !== "running";
+        updateValidation();
+      }
+
+      function isConsoleNearBottom() {
+        return elements.console.scrollHeight - elements.console.scrollTop - elements.console.clientHeight < 32;
+      }
+
+      function syncOutputActions() {
+        const hasOutput = elements.console.textContent.length > 0;
+        elements.copyButton.disabled = !hasOutput;
+        elements.clearButton.disabled = !hasOutput;
+      }
+
+      function replaceOutput(content, forceScroll = false) {
+        const shouldFollow = forceScroll || isConsoleNearBottom();
+        elements.console.textContent = content;
+        syncOutputActions();
+        if (shouldFollow) elements.console.scrollTop = elements.console.scrollHeight;
+      }
+
+      function appendOutput(chunk) {
+        const shouldFollow = isConsoleNearBottom();
+        elements.console.textContent += chunk;
+        syncOutputActions();
+        if (shouldFollow) elements.console.scrollTop = elements.console.scrollHeight;
+      }
+
+      async function startRun() {
+        const command = currentCommand();
+        const errors = updateValidation();
+        if (Object.keys(errors).length > 0 || isRunActive()) return;
+        state.submitting = true;
+        updateValidation();
+        showNotice("");
+
+        try {
+          const response = await fetch(command.endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ arguments: valuesFor(command) })
+          });
+          const body = await response.json();
+          if (!response.ok) throw new Error(body.error || `HTTP ${response.status}`);
+          replaceOutput(body.log || "", true);
+          setRunStatus(body);
+          watchRun(body);
+        } catch (error) {
+          showNotice(error.message);
+        } finally {
+          state.submitting = false;
+          updateValidation();
+        }
+      }
+
+      function watchRun(run) {
+        closeRunWatchers();
+        let cursor = run.cursor || 0;
+        const source = new EventSource(`/api/runs/${encodeURIComponent(run.id)}/events?cursor=${cursor}`);
+        state.eventSource = source;
+
+        source.addEventListener("output", (event) => {
+          const payload = JSON.parse(event.data);
+          cursor = payload.cursor;
+          appendOutput(payload.chunk);
+        });
+        source.addEventListener("state", (event) => {
+          const next = JSON.parse(event.data);
+          setRunStatus(next);
+          if (!isRunActive()) {
+            source.close();
+            state.eventSource = null;
+          }
+        });
+        source.onerror = () => {
+          source.close();
+          state.eventSource = null;
+          if (isRunActive()) pollRun(run.id);
+        };
+      }
+
+      function pollRun(id) {
+        clearInterval(state.pollTimer);
+        state.pollTimer = setInterval(async () => {
+          try {
+            const response = await fetch(`/api/runs/${encodeURIComponent(id)}`);
+            if (!response.ok) return;
+            const run = await response.json();
+            replaceOutput(run.log || "");
+            setRunStatus(run);
+            if (!isRunActive()) closeRunWatchers();
+          } catch (_) {
+          }
+        }, 800);
+      }
+
+      function closeRunWatchers() {
+        if (state.eventSource) state.eventSource.close();
+        if (state.pollTimer) clearInterval(state.pollTimer);
+        state.eventSource = null;
+        state.pollTimer = null;
+      }
+
+      async function stopRun() {
+        if (!isRunActive() || !state.currentRun) return;
+        elements.stopButton.disabled = true;
+        try {
+          const response = await fetch(`/api/runs/${encodeURIComponent(state.currentRun.id)}`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+          });
+          const run = await response.json();
+          if (!response.ok) throw new Error(run.error || `HTTP ${response.status}`);
+          setRunStatus(run);
+        } catch (error) {
+          showNotice(error.message);
+        }
+      }
+
+      async function copyOutput() {
+        const content = elements.console.textContent;
+        if (!content) return;
+        try {
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(content);
+          } else {
+            const textarea = document.createElement("textarea");
+            textarea.value = content;
+            textarea.style.position = "fixed";
+            textarea.style.opacity = "0";
+            document.body.appendChild(textarea);
+            textarea.select();
+            const copied = document.execCommand("copy");
+            textarea.remove();
+            if (!copied) throw new Error("copy command failed");
+          }
+          elements.copyButton.textContent = "Copied";
+          window.setTimeout(() => {
+            elements.copyButton.textContent = "Copy log";
+          }, 1500);
+        } catch (_) {
+          elements.copyButton.textContent = "Copy failed";
+        }
+      }
+
+      elements.tabs.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-tab]");
+        if (!button || !state.catalog) return;
+        state.activeTab = button.dataset.tab;
+        renderForm();
+      });
+
+      elements.roleSwitch.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-role]");
+        if (!button) return;
+        state.roles[state.activeTab] = button.dataset.role;
+        renderForm();
+      });
+
+      function handleFieldInput(event) {
+        const command = currentCommand();
+        const field = command.fields.find((item) => item.name === event.target.name);
+        if (!field) return;
+        valuesFor(command)[field.name] = readInputValue(event.target, field);
+        if (field.name === "mode") {
+          renderForm();
+          return;
+        }
+        updateValidation();
+      }
+
+      elements.form.addEventListener("input", handleFieldInput);
+      elements.form.addEventListener("change", (event) => {
+        if (event.target.matches("select")) handleFieldInput(event);
+      });
+
+      elements.form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        startRun();
+      });
+
+      elements.stopButton.addEventListener("click", stopRun);
+      elements.copyButton.addEventListener("click", copyOutput);
+      elements.clearButton.addEventListener("click", () => {
+        replaceOutput("", true);
+      });
+
+      elements.profileSelect.addEventListener("change", () => {
+        const command = currentCommand();
+        state.selectedProfiles[command.id] = elements.profileSelect.value;
+        renderProfiles(command);
+        if (elements.profileSelect.value) loadNamedProfile();
+      });
+      elements.saveProfileButton.addEventListener("click", openSaveModal);
+      elements.deleteProfileButton.addEventListener("click", deleteNamedProfile);
+      elements.profileName.addEventListener("input", validateProfileName);
+      elements.cancelSaveButton.addEventListener("click", closeSaveModal);
+      elements.saveProfileForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        saveNamedProfile();
+      });
+      elements.saveModal.addEventListener("click", (event) => {
+        if (event.target === elements.saveModal) closeSaveModal();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !elements.saveModal.hidden) closeSaveModal();
+      });
+
+      async function initialize() {
+        try {
+          state.profiles = loadProfilesFromStorage();
+          const response = await fetch("/api/commands");
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          state.catalog = await response.json();
+          for (const tab of state.catalog.tabs) {
+            for (const command of tab.commands) valuesFor(command);
+          }
+          elements.connection.dataset.state = "online";
+          elements.connectionText.textContent = "API online";
+          elements.loading.hidden = true;
+          elements.controlContent.hidden = false;
+          renderForm();
+        } catch (error) {
+          elements.connection.dataset.state = "error";
+          elements.connectionText.textContent = "API error";
+          elements.loading.textContent = error.message;
+        }
+      }
+
+      initialize();
+    })();
+  </script>
+</body>
+</html>
